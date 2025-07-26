@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hoursly - Work Hours Tracker</title>
+  <link href="./dist/output.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body {
+      background: #FBFBFB;
+      min-height: 100vh;
+    }
+    
+    .glassmorphism {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    
+    .glassmorphism-strong {
+      background: rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    
+    /* Custom responsive text sizes */
+    .mobile-text {
+      font-size: 1.25rem;
+    }
+    
+    @media (min-width: 640px) {
+      .mobile-text {
+        font-size: 1.5rem;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .mobile-text {
+        font-size: 1.875rem;
+      }
+    }
+    
+    @media (min-width: 1280px) {
+      .mobile-text {
+        font-size: 2.25rem;
+      }
+    }
+    
+    @media (min-width: 1536px) {
+      .mobile-text {
+        font-size: 3rem;
+      }
+    }
+    
+    /* Custom mobile breakpoints */
+    @media (max-width: 480px) {
+      .mobile-text {
+        font-size: 1.125rem;
+      }
+    }
+    
+    @media (max-width: 360px) {
+      .mobile-text {
+        font-size: 1rem;
+      }
+    }
+    
+    /* App title color override */
+    h1.app-title {
+      color: #A6D6D6 !important;
+    }
+    
+    /* Modal close button styling */
+    #closeModalBtn {
+      background-color: #FFB3BA !important;
+      color: white !important;
+    }
+    
+    #closeModalBtn:hover {
+      background-color: #FF9AA2 !important;
+    }
+    
+    /* General color overrides */
+    label, .font-semibold, .font-bold, h2, th {
+      color: #374151 !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans text-[#374151]">
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+  <!-- Backdrop Overlay for Modals -->
+  <div id="backdropOverlay" class="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm z-40 hidden"></div>
+  
+  <!-- Light Backdrop Overlay for Success Messages -->
+  <div id="successBackdropOverlay" class="fixed inset-0 bg-black bg-opacity-5 backdrop-blur-xs z-40 hidden"></div>
+
+  <!-- Validation Modal -->
+  <div id="validationContainer" class="fixed inset-0 flex items-center justify-center z-[60] hidden">
+    <div class="glassmorphism-strong rounded-2xl p-6 mx-4 max-w-md w-full shadow-2xl">
+      <div class="text-center">
+        <div class="text-red-500 text-4xl mb-4">⚠️</div>
+        <p id="validationMessage" class="text-[#374151] font-semibold mb-6 text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl"></p>
+        <div class="flex justify-center space-x-3">
+          <button id="closeValidation" class="bg-[#A6D6D6] hover:bg-[#9ECAD6] text-[#374151] py-2 px-6 rounded-lg text-xs sm:text-sm lg:text-base xl:text-lg 2xl:text-xl font-semibold transition-all duration-300">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="successContainer" class="fixed inset-0 flex items-center justify-center z-[60] hidden">
+    <div class="glassmorphism-strong rounded-2xl p-6 mx-4 max-w-md w-full shadow-2xl">
+      <div class="text-center">
+        <div class="flex items-center justify-center mb-6">
+          <span class="text-green-500 text-2xl sm:text-3xl lg:text-4xl mr-3">✓</span>
+          <p id="successMessage" class="text-[#374151] font-semibold text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl"></p>
+        </div>
+        <div class="flex justify-center space-x-3">
+          <button id="closeSuccess" class="bg-[#8DD3B6] hover:bg-[#7BC4A5] text-[#374151] py-2 px-6 rounded-lg text-xs sm:text-sm lg:text-base xl:text-lg 2xl:text-xl font-semibold transition-all duration-300">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entries Modal -->
+  <div id="entriesModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+    <div class="glassmorphism-strong rounded-2xl p-4 mx-2 max-w-6xl w-full max-h-[90vh] shadow-2xl overflow-hidden">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-[#374151] font-bold text-lg sm:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl">Work Entries</h3>
+        <button id="closeModalBtn" class="bg-[#FFB3BA] hover:bg-[#FF9AA2] text-white w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 2xl:w-11 2xl:h-11 rounded-full flex items-center justify-center p-0 transition-all duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6">
+            <line x1="5" y1="5" x2="15" y2="15" stroke="white" stroke-linecap="round"/>
+            <line x1="15" y1="5" x2="5" y2="15" stroke="white" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Period Selector -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4">
+        <label class="text-[#374151] font-semibold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl">Period:</label>
+        <div class="flex items-center gap-2">
+          <input type="date" id="periodStartDate" class="px-3 py-2 rounded-lg border border-[#A6D6D6] focus:outline-none focus:ring-2 focus:ring-[#A6D6D6] focus:border-transparent text-[#374151] text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl bg-white">
+          <span class="text-[#374151] font-semibold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl">to</span>
+          <input type="date" id="periodEndDate" class="px-3 py-2 rounded-lg border border-[#A6D6D6] focus:outline-none focus:ring-2 focus:ring-[#A6D6D6] focus:border-transparent text-[#374151] text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl bg-white">
+        </div>
+        <button id="filterBtn" onclick="handleFilterClick()" class="bg-[#8DD3B6] hover:bg-[#7BC4A5] text-white py-2 px-4 rounded-lg text-xs sm:text-sm lg:text-base xl:text-lg 2xl:text-xl font-semibold transition-all duration-300">Filter</button>
+        <button id="showAllBtn" onclick="handleShowAllClick()" class="bg-[#A6D6D6] hover:bg-[#9ECAD6] text-[#374151] py-2 px-4 rounded-lg text-xs sm:text-sm lg:text-base xl:text-lg 2xl:text-xl font-semibold transition-all duration-300">Show All</button>
+      </div>
+      
+      <div class="overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div id="modalEntriesTable" class="text-[#374151]"></div>
+      </div>
+      
+      <div class="flex justify-center mt-3 space-x-3">
+        <button id="printPdfBtn" class="bg-[#A6D6D6] hover:bg-[#9ECAD6] text-[#374151] py-2 px-6 rounded-lg text-xs sm:text-sm lg:text-base xl:text-lg 2xl:text-xl font-semibold transition-all duration-300 shadow-sm hover:shadow-md">Print as PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Container -->
+  <div class="container mx-auto px-0 sm:px-4 py-0 sm:py-8 lg:py-10 xl:py-12 2xl:py-16 max-w-3xl min-h-screen sm:flex sm:items-center sm:justify-center">
+    <!-- White Background Container -->
+    <div class="bg-[#FFEAEA] rounded-none sm:rounded-3xl shadow-2xl pt-8 pb-4 px-4 sm:pt-10 sm:pb-6 sm:px-6 lg:pt-12 lg:pb-8 lg:px-8 xl:pt-14 xl:pb-10 xl:px-10 2xl:pt-16 2xl:pb-12 2xl:px-12 min-h-screen sm:min-h-0 flex flex-col">
+    <!-- Header -->
+    <div class="text-center mb-6 sm:mb-7 lg:mb-8 xl:mb-9 2xl:mb-10 pt-8 sm:pt-10 lg:pt-12 xl:pt-14 2xl:pt-16">
+      <h1 class="app-title text-xl sm:text-2xl lg:text-2xl xl:text-3xl 2xl:text-4xl font-bold text-center mb-2 mobile-text flex items-center justify-center">
+        <span class="inline-flex items-center mr-2">
+          <svg class="w-6 h-6 sm:w-7 sm:h-7 lg:w-7 lg:h-7 xl:w-8 xl:h-8 2xl:w-9 2xl:h-9 flex-shrink-0" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="28" height="28" rx="6" stroke="#A6D6D6" stroke-width="2" fill="none"/>
+            <circle cx="16" cy="16" r="10" stroke="#A6D6D6" stroke-width="2" fill="none"/>
+            <line x1="16" y1="16" x2="16" y2="8" stroke="#A6D6D6" stroke-width="2" stroke-linecap="round"/>
+            <line x1="16" y1="16" x2="22" y2="16" stroke="#A6D6D6" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>Hoursly
+      </h1>
+      <p class="text-[#6B7280] text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl font-medium">Start logging and stay in control with Hoursly!</p>
+    </div>
+
+    <!-- Summary Container -->
+    <div id="summaryContainer" class="glassmorphism rounded-2xl p-4 sm:p-5 lg:p-6 xl:p-8 2xl:p-10 mb-6 sm:mb-7 lg:mb-8 xl:mb-9 2xl:mb-10 text-center shadow-lg">
+      <div class="text-[#374151] font-semibold">
+        <div class="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+          <label for="payPeriodDay" class="text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl whitespace-nowrap">Pay Period Start Day:</label>
+          <div class="flex items-center gap-2">
+            <input type="number" id="payPeriodDay" min="1" max="31" value="20" class="w-20 px-3 py-2 rounded-lg border border-[#A6D6D6] focus:outline-none focus:ring-2 focus:ring-[#A6D6D6] focus:border-transparent text-[#374151] text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl bg-white text-center" disabled>
+            <button id="editPayPeriodBtn" class="bg-[#A6D6D6] hover:bg-[#9ECAD6] text-[#374151] py-2 px-3 rounded-lg text-xs sm:text-sm lg:text-base xl:text-lg 2xl:text-xl font-semibold transition-all duration-300">Edit</button>
+          </div>
+        </div>
+        <span id="periodLine" class="block text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl mb-2"></span>
+        <span id="totalHours" class="block text-lg sm:text-xl lg:text-lg xl:text-xl 2xl:text-2xl text-[#374151] font-bold"></span>
+        <p class="text-xs sm:text-sm lg:text-sm xl:text-base 2xl:text-lg text-[#6B7280] mt-2 mb-6 sm:mb-8 lg:mb-10 xl:mb-12 2xl:mb-14">Current pay period summary</p>
+      </div>
+    </div>
+
+    <!-- Form Section -->
+    <div class="glassmorphism rounded-2xl p-4 sm:p-5 lg:p-6 xl:p-8 2xl:p-10 mb-6 sm:mb-7 lg:mb-8 xl:mb-9 2xl:mb-10 shadow-lg">
+      <form id="entryForm" class="space-y-6 sm:space-y-7 lg:space-y-8 xl:space-y-9 2xl:space-y-10">
+        <!-- Date Row -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-4 xl:gap-6 2xl:gap-8">
+          <div class="flex items-center gap-3 sm:gap-4 lg:gap-5 xl:gap-6 2xl:gap-7">
+            <label for="dateInput" class="text-[#374151] font-semibold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl whitespace-nowrap min-w-[80px] sm:min-w-[100px] lg:min-w-[120px] xl:min-w-[140px] 2xl:min-w-[160px]">Date:</label>
+            <input type="date" id="dateInput" class="flex-1 h-10 sm:h-11 lg:h-12 xl:h-13 2xl:h-14 px-3 py-2 rounded-xl border border-[#A6D6D6] focus:outline-none focus:ring-2 focus:ring-[#A6D6D6] focus:border-transparent text-[#374151] text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl" required>
+          </div>
+        </div>
+
+        <!-- Start Time Row -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-4 xl:gap-6 2xl:gap-8">
+          <div class="flex items-center gap-3 sm:gap-4 lg:gap-5 xl:gap-6 2xl:gap-7">
+            <label for="startTimeInput" class="text-[#374151] font-semibold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl whitespace-nowrap min-w-[80px] sm:min-w-[100px] lg:min-w-[120px] xl:min-w-[140px] 2xl:min-w-[160px]">Start Time:</label>
+            <input type="time" id="startTimeInput" class="flex-1 h-10 sm:h-11 lg:h-12 xl:h-13 2xl:h-14 px-3 py-2 rounded-xl border border-[#A6D6D6] focus:outline-none focus:ring-2 focus:ring-[#A6D6D6] focus:border-transparent text-[#374151] text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl" required>
+          </div>
+        </div>
+
+        <!-- End Time Row -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-4 xl:gap-6 2xl:gap-8">
+          <div class="flex items-center gap-3 sm:gap-4 lg:gap-5 xl:gap-6 2xl:gap-7">
+            <label for="endTimeInput" class="text-[#374151] font-semibold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl whitespace-nowrap min-w-[80px] sm:min-w-[100px] lg:min-w-[120px] xl:min-w-[140px] 2xl:min-w-[160px]">End Time:</label>
+            <input type="time" id="endTimeInput" class="flex-1 h-10 sm:h-11 lg:h-12 xl:h-13 2xl:h-14 px-3 py-2 rounded-xl border border-[#A6D6D6] focus:outline-none focus:ring-2 focus:ring-[#A6D6D6] focus:border-transparent text-[#374151] text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl" required>
+          </div>
+        </div>
+
+        <!-- Overnight Work Checkbox -->
+        <div class="flex items-center">
+          <input type="checkbox" id="overnightCheckbox" class="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 2xl:w-8 2xl:h-8 text-[#A6D6D6] bg-gray-100 border-gray-300 rounded focus:ring-[#A6D6D6] focus:ring-2">
+          <label for="overnightCheckbox" class="ml-2 text-[#374151] font-semibold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl">Overnight work (next day)</label>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-center">
+          <button type="submit" class="bg-[#A6D6D6] hover:bg-[#9ECAD6] text-[#374151] py-2 px-6 sm:py-2 sm:px-8 lg:py-2 lg:px-8 xl:py-3 xl:px-10 2xl:py-4 2xl:px-12 rounded-xl font-bold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl transition-all duration-300 shadow-sm hover:shadow-md">Add Entry</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Buttons Container -->
+    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-4 xl:gap-6 2xl:gap-8 justify-center mb-6 sm:mb-7 lg:mb-8 xl:mb-9 2xl:mb-10">
+      <button id="toggleTableBtn" class="bg-[#A6D6D6] hover:bg-[#9ECAD6] text-[#374151] py-2 px-6 sm:py-2 sm:px-8 lg:py-2 lg:px-8 xl:py-3 xl:px-10 2xl:py-4 2xl:px-12 rounded-xl font-bold text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl transition-all duration-300 shadow-sm hover:shadow-md">View Entries</button>
+    </div>
+
+    <!-- Current Pay Period Table Container -->
+    <div id="tableContainer" class="hidden">
+      <div class="text-center mb-4">
+        <h3 class="text-lg sm:text-xl lg:text-xl xl:text-2xl 2xl:text-3xl font-bold text-[#374151] mb-2">Current Pay Period Entries</h3>
+        <p class="text-sm sm:text-base lg:text-base xl:text-lg 2xl:text-xl text-[#6B7280]">Only entries within the current pay period are shown here</p>
+      </div>
+      <table id="entriesTable" class="w-full mt-4 text-[#374151] rounded-xl overflow-hidden shadow-md">
+        <thead class="bg-[#A6D6D6]">
+          <tr>
+            <th class="p-3 text-left font-semibold border-b border-[#9ECAD6]">Date</th>
+            <th class="p-3 text-left font-semibold border-b border-[#9ECAD6]">Start</th>
+            <th class="p-3 text-left font-semibold border-b border-[#9ECAD6]">End</th>
+            <th class="p-3 text-left font-semibold border-b border-[#9ECAD6]">Hours</th>
+            <th class="p-3 text-left font-semibold border-b border-[#9ECAD6]">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="entriesTableBody" class="bg-white"></tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-[#FFEAEA] text-[#374151] py-1 mt-auto pt-2 sm:pt-3 lg:pt-4 border-t border-[#A6D6D6] rounded-lg">
+      <div class="container mx-auto px-4 text-center">
+        <p class="text-xs sm:text-xs lg:text-xs xl:text-xs 2xl:text-xs font-semibold">
+          © <span id="currentYear"></span> Hoursly. All Rights Reserved.
+        </p>
+        <p class="text-xs sm:text-xs lg:text-xs xl:text-xs 2xl:text-xs text-[#6B7280] mt-0.5">
+          Developed By M Rasel Mahmud
+        </p>
+      </div>
+    </footer>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

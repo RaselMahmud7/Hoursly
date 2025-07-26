@@ -1,0 +1,26 @@
+{
+  "name": "hours-tracker",
+  "version": "1.0.0",
+  "main": "script.js",
+  "scripts": {
+    "build": "npx tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
+    "build:prod": "npx tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
+    "dev": "npx tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RaselMahmud7/Hours-Tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RaselMahmud7/Hours-Tracker/issues"
+  },
+  "homepage": "https://github.com/RaselMahmud7/Hours-Tracker#readme",
+  "description": "",
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
